@@ -5,13 +5,15 @@
         <group>
             <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/web/index.html</file>
             <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/src/java/conexion/Conexion.java</file>
-            <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/src/java/modelo/Usuario.java</file>
             <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/src/java/modelo/UsuarioDAO.java</file>
             <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/src/java/controlador/Validar.java</file>
             <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/web/index.jsp</file>
             <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/web/productos.jsp</file>
             <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/web/login.jsp</file>
-            <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/src/conf/MANIFEST.MF</file>
+            <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/src/java/modelo/Producto.java</file>
+            <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/src/java/modelo/ProductoDAO.java</file>
+            <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/src/java/controlador/ControladorProducto.java</file>
+            <file>file:/C:/Users/amaya/OneDrive/Documentos/NetBeansProjects/TechStore/web/detalleProducto.jsp</file>
         </group>
     </open-files>
 </project-private>
