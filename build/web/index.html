@@ -1,70 +1,953 @@
 <!DOCTYPE html>
-<!--
-Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
-Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit this template
--->
-<html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>TechStore</title>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TechStore S.A.C.</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Mulish:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['Syne', 'sans-serif'],
+          body: ['Mulish', 'sans-serif'],
+        },
+        colors: {
+          ink: { 950:'#080810', 900:'#0f0f1a', 800:'#161625', 700:'#1e1e30', 600:'#28283e', 500:'#3a3a54', 400:'#5a5a7a', 300:'#8888aa', 200:'#b0b0cc', 100:'#d8d8ee', 50:'#f0f0f8' },
+          volt: { DEFAULT:'#c8ff00', dark:'#a0cc00', dim:'rgba(200,255,0,0.12)', border:'rgba(200,255,0,0.25)' },
+        },
+        animation: {
+          'fade-up': 'fadeUp 0.3s ease forwards',
+          'slide-in': 'slideIn 0.3s ease forwards',
+        },
+        keyframes: {
+          fadeUp: { from:{ opacity:'0', transform:'translateY(10px)' }, to:{ opacity:'1', transform:'translateY(0)' } },
+          slideIn: { from:{ opacity:'0', transform:'translateX(20px)' }, to:{ opacity:'1', transform:'translateX(0)' } },
+        }
+      }
+    }
+  }
+</script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Mulish', sans-serif; background: #080810; color: #d8d8ee; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #0f0f1a; }
+  ::-webkit-scrollbar-thumb { background: #3a3a54; border-radius: 2px; }
+  input, select, textarea { outline: none; }
+  input:focus, select:focus, textarea:focus { border-color: rgba(200,255,0,0.4) !important; }
+  select option { background: #1e1e30; }
+  .cart-sidebar { transform: translateX(100%); transition: transform 0.3s ease; }
+  .cart-sidebar.open { transform: translateX(0); }
+  .modal-overlay { display: none; }
+  .modal-overlay.open { display: flex; }
+  @keyframes toastIn { from{ opacity:0; transform:translateX(16px) } to{ opacity:1; transform:translateX(0) } }
+  .toast-anim { animation: toastIn 0.25s ease; }
+</style>
+</head>
+<body class="min-h-screen">
 
-        <style>
+<!-- ══════════════════════ AUTH ══════════════════════ -->
+<div id="auth-screen" class="min-h-screen flex items-center justify-center px-4 bg-ink-950">
+  <div class="w-full max-w-md bg-ink-800 border border-ink-600 rounded-2xl p-8">
+    <h1 class="font-display text-3xl font-800 text-volt tracking-widest text-center mb-1">TECHSTORE</h1>
+    <p class="text-center text-ink-300 text-sm mb-6">S.A.C. — Productos Electrónicos</p>
 
-            *{
-                margin:0;
-                padding:0;
-                box-sizing:border-box;
-                font-family:Arial;
-            }
+    <div class="flex bg-ink-700 rounded-xl p-1 mb-6">
+      <button id="auth-tab-login" class="flex-1 py-2 rounded-lg text-sm font-medium transition-all bg-ink-800 text-ink-50 border border-ink-500" onclick="switchAuthTab('login')">Iniciar sesión</button>
+      <button id="auth-tab-register" class="flex-1 py-2 rounded-lg text-sm font-medium transition-all text-ink-300" onclick="switchAuthTab('register')">Registrarse</button>
+    </div>
 
-            body{
-                height:100vh;
-                background:linear-gradient(135deg,#2563eb,#1e3a8a);
-                display:flex;
-                justify-content:center;
-                align-items:center;
-                color:white;
-            }
+    <div id="tab-login">
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Correo electrónico</label>
+        <input id="login-email" type="email" placeholder="tu@correo.com" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm placeholder-ink-400">
+      </div>
+      <div class="mb-5">
+        <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Contraseña</label>
+        <input id="login-pass" type="password" placeholder="••••••••" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm placeholder-ink-400" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button onclick="doLogin()" class="w-full bg-volt text-ink-950 font-display font-700 tracking-wide py-2.5 rounded-lg hover:bg-volt-dark transition-colors">Entrar</button>
+      <p class="text-center text-ink-400 text-xs mt-4">Demo admin: <span class="text-ink-200 font-medium">admin@techstore.com</span> / <span class="text-ink-200 font-medium">admin123</span></p>
+    </div>
 
-            .contenedor{
-                text-align:center;
-            }
+    <div id="tab-register" class="hidden">
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Nombre</label>
+          <input id="reg-nombre" type="text" placeholder="Juan" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-3 py-2.5 text-ink-50 text-sm placeholder-ink-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Apellido</label>
+          <input id="reg-apellido" type="text" placeholder="Pérez" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-3 py-2.5 text-ink-50 text-sm placeholder-ink-400">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">DNI</label>
+          <input id="reg-dni" type="text" maxlength="8" placeholder="12345678" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-3 py-2.5 text-ink-50 text-sm placeholder-ink-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Teléfono</label>
+          <input id="reg-telefono" type="text" placeholder="999 888 777" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-3 py-2.5 text-ink-50 text-sm placeholder-ink-400">
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Correo electrónico</label>
+        <input id="reg-email" type="email" placeholder="tu@correo.com" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm placeholder-ink-400">
+      </div>
+      <div class="mb-5">
+        <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Contraseña</label>
+        <input id="reg-pass" type="password" placeholder="Mínimo 6 caracteres" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm placeholder-ink-400">
+      </div>
+      <button onclick="doRegister()" class="w-full bg-volt text-ink-950 font-display font-700 tracking-wide py-2.5 rounded-lg hover:bg-volt-dark transition-colors">Crear cuenta</button>
+    </div>
+  </div>
+</div>
 
-            h1{
-                font-size:60px;
-                margin-bottom:20px;
-            }
+<!-- ══════════════════════ APP ══════════════════════ -->
+<div id="app" class="hidden">
 
-            p{
-                font-size:20px;
-                margin-bottom:30px;
-            }
+  <!-- NAV -->
+  <nav class="sticky top-0 z-50 bg-ink-900/90 backdrop-blur-md border-b border-ink-700 px-6 flex items-center h-16 gap-4">
+    <div class="font-display text-xl font-800 tracking-widest text-volt cursor-pointer select-none" onclick="navTo('home')">TECH<span class="text-ink-300 font-400">STORE</span></div>
+    <div class="flex gap-1 flex-1 justify-center">
+      <button class="nav-link px-4 py-1.5 rounded-lg text-sm text-ink-300 hover:text-ink-50 hover:bg-ink-700 transition-all" onclick="navTo('home')">Inicio</button>
+      <button class="nav-link px-4 py-1.5 rounded-lg text-sm text-ink-300 hover:text-ink-50 hover:bg-ink-700 transition-all" onclick="navTo('productos')">Productos</button>
+      <button class="nav-link px-4 py-1.5 rounded-lg text-sm text-ink-300 hover:text-ink-50 hover:bg-ink-700 transition-all" onclick="navTo('pedidos')">Mis Pedidos</button>
+      <button id="nav-admin" class="nav-link hidden px-4 py-1.5 rounded-lg text-sm text-ink-300 hover:text-ink-50 hover:bg-ink-700 transition-all" onclick="navTo('admin')">Admin</button>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="openCart()" class="relative px-3 py-1.5 bg-ink-700 border border-ink-500 rounded-lg text-sm text-ink-200 hover:border-volt-border hover:text-volt transition-all">
+        Carrito <span id="cart-badge" class="ml-1 bg-volt text-ink-950 text-xs font-bold px-1.5 py-0.5 rounded-full">0</span>
+      </button>
+      <button onclick="doLogout()" class="px-3 py-1.5 text-sm text-ink-400 hover:text-ink-100 border border-ink-600 rounded-lg hover:border-ink-400 transition-all">Salir</button>
+    </div>
+  </nav>
 
-            a{
-                text-decoration:none;
-                background:white;
-                color:#2563eb;
-                padding:15px 35px;
-                border-radius:15px;
-                font-size:18px;
-                font-weight:bold;
-            }
+  <!-- HOME -->
+  <div id="page-home" class="page hidden max-w-7xl mx-auto px-6 py-8 animate-fade-up">
+    <div class="bg-ink-800 border border-ink-600 rounded-2xl px-10 py-12 mb-8 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-96 h-96 rounded-full opacity-5" style="background:radial-gradient(circle,#c8ff00,transparent);transform:translate(30%,-30%)"></div>
+      <span class="inline-block border border-volt-border bg-volt-dim text-volt text-xs font-semibold tracking-widest px-3 py-1 rounded-full mb-4">NUEVA TEMPORADA 2026</span>
+      <h1 class="font-display text-5xl font-800 leading-tight mb-4">La tecnología que<br>mueve tu mundo</h1>
+      <p class="text-ink-300 max-w-md mb-6 leading-relaxed">Encuentra los mejores productos electrónicos al mejor precio. Envíos a todo el Perú.</p>
+      <div class="flex gap-3">
+        <button onclick="navTo('productos')" class="bg-volt text-ink-950 font-display font-700 px-6 py-2.5 rounded-lg hover:bg-volt-dark transition-colors tracking-wide">Ver catálogo</button>
+        <button onclick="navTo('pedidos')" class="border border-ink-500 text-ink-200 px-6 py-2.5 rounded-lg hover:border-ink-300 hover:text-ink-50 transition-all text-sm">Mis pedidos</button>
+      </div>
+    </div>
+    <div id="home-featured"></div>
+  </div>
 
-            a:hover{
-                background:#dbeafe;
-            }
+  <!-- PRODUCTOS -->
+  <div id="page-productos" class="page hidden max-w-7xl mx-auto px-6 py-8 animate-fade-up">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="font-display text-2xl font-700">Catálogo de Productos</h2>
+      <select id="cat-filter" onchange="filterProducts()" class="bg-ink-700 border border-ink-500 text-ink-200 rounded-lg px-3 py-2 text-sm w-52">
+        <option value="">Todas las categorías</option>
+      </select>
+    </div>
+    <input id="prod-search" type="text" placeholder="Buscar productos..." oninput="filterProducts()" class="w-full bg-ink-800 border border-ink-600 rounded-xl px-4 py-3 text-ink-100 text-sm placeholder-ink-400 mb-6">
+    <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+  </div>
 
-        </style>
+  <!-- MIS PEDIDOS -->
+  <div id="page-pedidos" class="page hidden max-w-4xl mx-auto px-6 py-8 animate-fade-up">
+    <h2 class="font-display text-2xl font-700 mb-6">Mis Pedidos</h2>
+    <div id="pedidos-list"></div>
+  </div>
 
-    </head>
+  <!-- ADMIN -->
+  <div id="page-admin" class="page hidden max-w-7xl mx-auto px-6 py-8 animate-fade-up">
+    <h2 class="font-display text-2xl font-700 mb-5">Panel de Administración</h2>
+    <div class="flex gap-1 bg-ink-800 border border-ink-600 rounded-xl p-1 mb-6 flex-wrap">
+      <button class="admin-tab flex-1 min-w-max py-2 px-4 rounded-lg text-sm font-medium transition-all bg-ink-700 text-ink-50 border border-ink-500" onclick="adminTab('dashboard')">Dashboard</button>
+      <button class="admin-tab flex-1 min-w-max py-2 px-4 rounded-lg text-sm font-medium transition-all text-ink-300 hover:text-ink-100" onclick="adminTab('productos')">Productos</button>
+      <button class="admin-tab flex-1 min-w-max py-2 px-4 rounded-lg text-sm font-medium transition-all text-ink-300 hover:text-ink-100" onclick="adminTab('categorias')">Categorías</button>
+      <button class="admin-tab flex-1 min-w-max py-2 px-4 rounded-lg text-sm font-medium transition-all text-ink-300 hover:text-ink-100" onclick="adminTab('pedidos')">Pedidos</button>
+      <button class="admin-tab flex-1 min-w-max py-2 px-4 rounded-lg text-sm font-medium transition-all text-ink-300 hover:text-ink-100" onclick="adminTab('usuarios')">Usuarios</button>
+      <button class="admin-tab flex-1 min-w-max py-2 px-4 rounded-lg text-sm font-medium transition-all text-ink-300 hover:text-ink-100" onclick="adminTab('proveedores')">Proveedores</button>
+    </div>
+    <div id="admin-content"></div>
+  </div>
+</div>
 
-    <body>
+<!-- ══════════════════════ CART SIDEBAR ══════════════════════ -->
+<div id="cart-overlay" class="hidden fixed inset-0 bg-black/60 z-40" onclick="closeCart()"></div>
+<div id="cart-sidebar" class="cart-sidebar fixed right-0 top-0 bottom-0 w-96 bg-ink-800 border-l border-ink-600 z-50 flex flex-col">
+  <div class="flex items-center justify-between px-6 py-4 border-b border-ink-600">
+    <span class="font-display text-lg font-700">Carrito</span>
+    <button onclick="closeCart()" class="text-ink-400 hover:text-ink-100 text-xl leading-none transition-colors">x</button>
+  </div>
+  <div id="cart-items-list" class="flex-1 overflow-y-auto p-4"></div>
+  <div class="p-5 border-t border-ink-600">
+    <div id="cart-total-display" class="font-display text-2xl font-700 text-volt mb-4">S/ 0.00</div>
+    <button onclick="checkout()" class="w-full bg-volt text-ink-950 font-display font-700 tracking-wide py-3 rounded-xl hover:bg-volt-dark transition-colors">Confirmar Pedido</button>
+  </div>
+</div>
 
-        <div class="contenedor">
+<!-- ══════════════════════ MODALS ══════════════════════ -->
+<!-- Producto detalle -->
+<div id="modal-producto" class="modal-overlay fixed inset-0 bg-black/70 z-60 items-center justify-center p-4 backdrop-blur-sm">
+  <div class="bg-ink-800 border border-ink-600 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-fade-up">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-ink-600">
+      <span id="modal-prod-title" class="font-display text-xl font-700">Producto</span>
+      <button onclick="closeModal('modal-producto')" class="text-ink-400 hover:text-ink-100 text-xl leading-none">x</button>
+    </div>
+    <div id="modal-prod-content" class="p-6"></div>
+  </div>
+</div>
 
-            <h1>TechStore</h1>
+<!-- Form producto -->
+<div id="modal-form-prod" class="modal-overlay fixed inset-0 bg-black/70 z-60 items-center justify-center p-4 backdrop-blur-sm">
+  <div class="bg-ink-800 border border-ink-600 rounded-2xl w-full max-w-lg animate-fade-up">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-ink-600">
+      <span id="form-prod-title" class="font-display text-lg font-700">Producto</span>
+      <button onclick="closeModal('modal-form-prod')" class="text-ink-400 hover:text-ink-100 text-xl leading-none">x</button>
+    </div>
+    <div class="p-6 space-y-4">
+      <input type="hidden" id="fp-id">
+      <div>
+        <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Nombre</label>
+        <input id="fp-nombre" type="text" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Descripción</label>
+        <textarea id="fp-desc" rows="3" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm resize-none"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Precio (S/)</label>
+          <input id="fp-precio" type="number" step="0.01" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Stock</label>
+          <input id="fp-stock" type="number" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm">
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Categoría</label>
+        <select id="fp-categoria" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm"></select>
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeModal('modal-form-prod')" class="px-5 py-2.5 border border-ink-500 text-ink-200 rounded-lg text-sm hover:border-ink-300 transition-colors">Cancelar</button>
+        <button onclick="saveProducto()" class="px-5 py-2.5 bg-volt text-ink-950 font-semibold rounded-lg text-sm hover:bg-volt-dark transition-colors">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-            <p>Sistema de Gestión E-Commerce</p>
+<!-- Form categoría -->
+<div id="modal-form-cat" class="modal-overlay fixed inset-0 bg-black/70 z-60 items-center justify-center p-4 backdrop-blur-sm">
+  <div class="bg-ink-800 border border-ink-600 rounded-2xl w-full max-w-sm animate-fade-up">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-ink-600">
+      <span class="font-display text-lg font-700">Categoría</span>
+      <button onclick="closeModal('modal-form-cat')" class="text-ink-400 hover:text-ink-100 text-xl leading-none">x</button>
+    </div>
+    <div class="p-6 space-y-4">
+      <input type="hidden" id="fc-id">
+      <div>
+        <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Nombre</label>
+        <input id="fc-nombre" type="text" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm">
+      </div>
+      <div class="flex justify-end gap-3">
+        <button onclick="closeModal('modal-form-cat')" class="px-5 py-2.5 border border-ink-500 text-ink-200 rounded-lg text-sm hover:border-ink-300 transition-colors">Cancelar</button>
+        <button onclick="saveCategoria()" class="px-5 py-2.5 bg-volt text-ink-950 font-semibold rounded-lg text-sm hover:bg-volt-dark transition-colors">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-            <a href="login.jsp">Ingresar al Sistema</a>
+<!-- Form proveedor -->
+<div id="modal-form-prov" class="modal-overlay fixed inset-0 bg-black/70 z-60 items-center justify-center p-4 backdrop-blur-sm">
+  <div class="bg-ink-800 border border-ink-600 rounded-2xl w-full max-w-lg animate-fade-up">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-ink-600">
+      <span class="font-display text-lg font-700">Proveedor</span>
+      <button onclick="closeModal('modal-form-prov')" class="text-ink-400 hover:text-ink-100 text-xl leading-none">x</button>
+    </div>
+    <div class="p-6 space-y-4">
+      <input type="hidden" id="fpr-id">
+      <div>
+        <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Nombre</label>
+        <input id="fpr-nombre" type="text" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Contacto</label>
+        <input id="fpr-contacto" type="text" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Teléfono</label>
+          <input id="fpr-telefono" type="text" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-ink-300 uppercase tracking-wider mb-2">Email</label>
+          <input id="fpr-email" type="email" class="w-full bg-ink-700 border border-ink-500 rounded-lg px-4 py-2.5 text-ink-50 text-sm">
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeModal('modal-form-prov')" class="px-5 py-2.5 border border-ink-500 text-ink-200 rounded-lg text-sm hover:border-ink-300 transition-colors">Cancelar</button>
+        <button onclick="saveProveedor()" class="px-5 py-2.5 bg-volt text-ink-950 font-semibold rounded-lg text-sm hover:bg-volt-dark transition-colors">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div id="toast-container" class="fixed bottom-5 right-5 z-[999] flex flex-col gap-2"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// SUPABASE CONFIG
+// ══════════════════════════════════════════════
+const SUPABASE_URL = 'https://ibiwfngyimomdhknzgny.supabase.co/rest/v1/';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaXdmbmd5aW1vbWRoa256Z255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNDI5MjAsImV4cCI6MjA5NTgxODkyMH0.3PYMTLRRVQqasnW7FajkpGPhKDllbr9ZN8sd9GGKKaI';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let currentUser = null;
+let allProducts = [];
+let allCategorias = [];
+let cartItems = [];
+let cartId = null;
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+const uid = () => Math.random().toString(36).substr(2,9).toUpperCase();
+const fmtPrice = p => 'S/ ' + Number(p).toFixed(2);
+const fmtDate = d => d ? new Date(d).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'}) : '-';
+
+function toast(msg, type='success') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  const colors = type==='success' ? 'bg-ink-700 border-volt-border text-ink-50' : 'bg-ink-700 border-red-500/40 text-ink-50';
+  t.className = `toast-anim flex items-center gap-3 px-4 py-3 rounded-xl border text-sm min-w-72 ${colors}`;
+  const dot = type==='success' ? 'bg-volt' : 'bg-red-500';
+  t.innerHTML = `<div class="w-2 h-2 rounded-full ${dot} shrink-0"></div><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function statusBadge(s) {
+  const map = {
+    'SOLICITADO':'bg-blue-500/15 text-blue-300 border-blue-500/25',
+    'EMPAQUE':'bg-yellow-500/15 text-yellow-300 border-yellow-500/25',
+    'EN_CAMINO':'bg-purple-500/15 text-purple-300 border-purple-500/25',
+    'ENTREGADO':'bg-volt-dim text-volt border-volt-border',
+    'NO_ENTREGADO':'bg-red-500/15 text-red-300 border-red-500/25',
+    'PREPARACION':'bg-yellow-500/15 text-yellow-300 border-yellow-500/25',
+    'PENDIENTE':'bg-yellow-500/15 text-yellow-300 border-yellow-500/25',
+    'APROBADO':'bg-volt-dim text-volt border-volt-border',
+    'RECHAZADO':'bg-red-500/15 text-red-300 border-red-500/25',
+    'ADMIN':'bg-purple-500/15 text-purple-300 border-purple-500/25',
+    'CLIENTE':'bg-blue-500/15 text-blue-300 border-blue-500/25',
+  };
+  return `<span class="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full border ${map[s]||'bg-ink-600 text-ink-200 border-ink-500'}">${s}</span>`;
+}
+
+// ══════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════
+function switchAuthTab(tab) {
+  document.getElementById('tab-login').classList.toggle('hidden', tab!=='login');
+  document.getElementById('tab-register').classList.toggle('hidden', tab!=='register');
+  document.getElementById('auth-tab-login').className = `flex-1 py-2 rounded-lg text-sm font-medium transition-all ${tab==='login'?'bg-ink-800 text-ink-50 border border-ink-500':'text-ink-300'}`;
+  document.getElementById('auth-tab-register').className = `flex-1 py-2 rounded-lg text-sm font-medium transition-all ${tab==='register'?'bg-ink-800 text-ink-50 border border-ink-500':'text-ink-300'}`;
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if(!email||!pass) return toast('Completa los campos','error');
+  const { data, error } = await sb.from('usuarios').select('*').eq('email',email).single();
+  if(error||!data) return toast('Usuario no encontrado','error');
+  if(data.contrasena !== pass) return toast('Contraseña incorrecta','error');
+  currentUser = data;
+  initApp();
+}
+
+async function doRegister() {
+  const nombre   = document.getElementById('reg-nombre').value.trim();
+  const apellido = document.getElementById('reg-apellido').value.trim();
+  const dni      = document.getElementById('reg-dni').value.trim();
+  const telefono = document.getElementById('reg-telefono').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const pass     = document.getElementById('reg-pass').value;
+  if(!nombre||!apellido||!email||!pass||!dni) return toast('Completa todos los campos','error');
+  if(pass.length<6) return toast('Contraseña mínimo 6 caracteres','error');
+  const { error } = await sb.from('usuarios').insert({ id:uid(), email, contrasena:pass, rol:'CLIENTE', nombre, apellido, dni, telefono });
+  if(error) return toast(error.message||'Error al registrar','error');
+  toast('Cuenta creada. Ya puedes iniciar sesión.');
+  switchAuthTab('login');
+}
+
+function doLogout() {
+  currentUser=null; cartItems=[]; cartId=null;
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('auth-screen').classList.remove('hidden');
+  updateCartBadge();
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('bg-ink-700','text-ink-50'));
+  document.getElementById('page-'+page)?.classList.remove('hidden');
+  const active = document.querySelector(`.nav-link[onclick*="'${page}'"]`);
+  if(active) active.classList.add('bg-ink-700','text-ink-50');
+  if(page==='productos') loadProductosPage();
+  if(page==='pedidos') loadMyPedidos();
+  if(page==='admin') adminTab('dashboard');
+  if(page==='home') loadHomeFeatured();
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+async function initApp() {
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  if(currentUser?.rol==='ADMIN') document.getElementById('nav-admin').classList.remove('hidden');
+  await loadCategorias();
+  await loadProductos();
+  await loadCart();
+  navTo('home');
+}
+
+// ══════════════════════════════════════════════
+// CATEGORIAS
+// ══════════════════════════════════════════════
+async function loadCategorias() {
+  const { data } = await sb.from('categorias').select('*').order('nombre');
+  allCategorias = data||[];
+  const sel = document.getElementById('cat-filter');
+  sel.innerHTML = '<option value="">Todas las categorías</option>' + allCategorias.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// PRODUCTOS
+// ══════════════════════════════════════════════
+async function loadProductos() {
+  const { data } = await sb.from('productos').select('*, categorias(nombre)').order('nombre');
+  allProducts = data||[];
+}
+
+function renderProductCard(p) {
+  const catNombre = p.categorias?.nombre||'';
+  const stockColor = p.stock===0 ? 'text-red-400' : p.stock<5 ? 'text-yellow-400' : 'text-volt';
+  const stockTxt = p.stock===0 ? 'Sin stock' : p.stock<5 ? `Últimas ${p.stock} unid.` : `${p.stock} en stock`;
+  return `<div class="bg-ink-800 border border-ink-600 rounded-2xl overflow-hidden cursor-pointer hover:border-volt-border hover:-translate-y-1 transition-all duration-200" onclick="openProductDetail('${p.id}')">
+    <div class="aspect-square bg-ink-700 flex items-center justify-center">
+      <span class="font-display text-4xl font-700 text-ink-500">${(p.nombre||'P').charAt(0)}</span>
+    </div>
+    <div class="p-4">
+      ${catNombre?`<span class="text-xs font-semibold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full">${catNombre}</span>`:''}
+      <div class="font-medium text-ink-50 mt-2 mb-1 text-sm leading-snug line-clamp-2">${p.nombre}</div>
+      <div class="font-display text-xl font-700 text-volt">${fmtPrice(p.precio)}</div>
+      <div class="text-xs mt-1 ${stockColor}">${stockTxt}</div>
+      ${p.stock>0?`<button class="mt-3 w-full bg-volt/10 border border-volt-border text-volt text-xs font-semibold py-2 rounded-lg hover:bg-volt hover:text-ink-950 transition-all" onclick="event.stopPropagation();addToCart('${p.id}','${p.nombre}',${p.precio})">Agregar al carrito</button>`
+      :`<button class="mt-3 w-full bg-ink-700 border border-ink-600 text-ink-400 text-xs py-2 rounded-lg cursor-not-allowed" disabled>Sin stock</button>`}
+    </div>
+  </div>`;
+}
+
+function loadProductosPage() { filterProducts(); }
+
+function filterProducts() {
+  const q = (document.getElementById('prod-search').value||'').toLowerCase();
+  const cat = document.getElementById('cat-filter').value;
+  const filtered = allProducts.filter(p=>(!q||p.nombre.toLowerCase().includes(q)||(p.descripcion||'').toLowerCase().includes(q))&&(!cat||p.id_categoria===cat));
+  const grid = document.getElementById('products-grid');
+  grid.innerHTML = filtered.length ? filtered.map(renderProductCard).join('') :
+    `<div class="col-span-full text-center py-16 text-ink-400"><p class="text-lg mb-2">Sin resultados</p><p class="text-sm">Intenta con otros términos de búsqueda</p></div>`;
+}
+
+function loadHomeFeatured() {
+  const featured = allProducts.filter(p=>p.stock>0).slice(0,8);
+  document.getElementById('home-featured').innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-display text-xl font-700">Productos Destacados</h2>
+      <button onclick="navTo('productos')" class="text-sm text-volt hover:text-volt-dark transition-colors">Ver todos</button>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">${featured.map(renderProductCard).join('')}</div>`;
+}
+
+async function openProductDetail(id) {
+  const p = allProducts.find(x=>x.id===id);
+  if(!p) return;
+  const catNombre = p.categorias?.nombre||'';
+  document.getElementById('modal-prod-title').textContent = p.nombre;
+  document.getElementById('modal-prod-content').innerHTML = `
+    <div class="flex gap-6 flex-wrap">
+      <div class="w-48 h-48 bg-ink-700 rounded-xl flex items-center justify-center flex-shrink-0">
+        <span class="font-display text-6xl font-700 text-ink-500">${(p.nombre||'P').charAt(0)}</span>
+      </div>
+      <div class="flex-1 min-w-48">
+        ${catNombre?`<span class="text-xs font-semibold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-full">${catNombre}</span>`:''}
+        <div class="font-display text-3xl font-700 text-volt mt-3 mb-2">${fmtPrice(p.precio)}</div>
+        <p class="text-ink-300 text-sm leading-relaxed mb-4">${p.descripcion||'Sin descripción.'}</p>
+        <div class="mb-4">${statusBadge(p.stock===0?'NO_ENTREGADO':p.stock<5?'EMPAQUE':'ENTREGADO').replace('NO_ENTREGADO','Sin stock').replace('EMPAQUE',`Últimas ${p.stock} unidades`).replace('ENTREGADO',`${p.stock} en stock`)}</div>
+        ${p.stock>0?`<button onclick="addToCart('${p.id}','${p.nombre}',${p.precio});closeModal('modal-producto')" class="bg-volt text-ink-950 font-display font-700 px-6 py-2.5 rounded-lg hover:bg-volt-dark transition-colors">Agregar al carrito</button>`:''}
+      </div>
+    </div>`;
+  openModal('modal-producto');
+}
+
+// ══════════════════════════════════════════════
+// CART
+// ══════════════════════════════════════════════
+async function loadCart() {
+  const { data } = await sb.from('carrito').select('*, carrito_detalle(*, productos(nombre,precio))').eq('id_usuario',currentUser.id).single();
+  if(data) { cartId=data.id; cartItems=data.carrito_detalle||[]; }
+  else { cartId=null; cartItems=[]; }
+  updateCartBadge();
+}
+
+async function ensureCart() {
+  if(cartId) return;
+  const id = uid();
+  await sb.from('carrito').insert({ id, id_usuario:currentUser.id });
+  cartId = id;
+}
+
+async function addToCart(prodId, prodNombre, precio) {
+  await ensureCart();
+  const existing = cartItems.find(i=>i.id_producto===prodId);
+  if(existing) {
+    await sb.from('carrito_detalle').update({ cantidad:existing.cantidad+1 }).eq('id',existing.id);
+    existing.cantidad++;
+  } else {
+    const id = uid();
+    await sb.from('carrito_detalle').insert({ id, id_carrito:cartId, id_producto:prodId, cantidad:1 });
+    cartItems.push({ id, id_carrito:cartId, id_producto:prodId, cantidad:1, productos:{ nombre:prodNombre, precio } });
+  }
+  updateCartBadge(); renderCartItems();
+  toast(`${prodNombre} añadido al carrito`);
+}
+
+async function removeFromCart(itemId) {
+  await sb.from('carrito_detalle').delete().eq('id',itemId);
+  cartItems = cartItems.filter(i=>i.id!==itemId);
+  updateCartBadge(); renderCartItems();
+}
+
+async function changeQty(itemId, delta) {
+  const item = cartItems.find(i=>i.id===itemId);
+  if(!item) return;
+  const newQty = item.cantidad + delta;
+  if(newQty<=0) return removeFromCart(itemId);
+  await sb.from('carrito_detalle').update({ cantidad:newQty }).eq('id',itemId);
+  item.cantidad = newQty;
+  updateCartBadge(); renderCartItems();
+}
+
+function updateCartBadge() {
+  document.getElementById('cart-badge').textContent = cartItems.reduce((s,i)=>s+i.cantidad,0);
+}
+
+function renderCartItems() {
+  const list = document.getElementById('cart-items-list');
+  if(!cartItems.length) {
+    list.innerHTML = `<div class="text-center py-12 text-ink-400"><p>Carrito vacío</p></div>`;
+    document.getElementById('cart-total-display').textContent = 'S/ 0.00';
+    return;
+  }
+  let total = 0;
+  list.innerHTML = cartItems.map(i=>{
+    const precio = Number(i.productos?.precio||0);
+    const sub = precio*i.cantidad;
+    total += sub;
+    return `<div class="flex items-center gap-3 py-3 border-b border-ink-600 last:border-0">
+      <div class="w-10 h-10 bg-ink-700 rounded-lg flex items-center justify-center flex-shrink-0">
+        <span class="font-display font-700 text-ink-400">${(i.productos?.nombre||'P').charAt(0)}</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium text-ink-50 truncate">${i.productos?.nombre||'Producto'}</div>
+        <div class="text-xs text-ink-400">${fmtPrice(precio)} c/u</div>
+        <div class="flex items-center gap-2 mt-1.5">
+          <button onclick="changeQty('${i.id}',-1)" class="w-6 h-6 rounded bg-ink-600 hover:bg-volt hover:text-ink-950 text-ink-200 text-sm flex items-center justify-center transition-colors">-</button>
+          <span class="text-sm font-medium w-5 text-center">${i.cantidad}</span>
+          <button onclick="changeQty('${i.id}',1)" class="w-6 h-6 rounded bg-ink-600 hover:bg-volt hover:text-ink-950 text-ink-200 text-sm flex items-center justify-center transition-colors">+</button>
+          <span class="text-xs text-volt ml-1">${fmtPrice(sub)}</span>
+        </div>
+      </div>
+      <button onclick="removeFromCart('${i.id}')" class="text-ink-500 hover:text-red-400 transition-colors text-sm px-1">x</button>
+    </div>`;
+  }).join('');
+  document.getElementById('cart-total-display').textContent = fmtPrice(total);
+}
+
+function openCart() { renderCartItems(); document.getElementById('cart-sidebar').classList.add('open'); document.getElementById('cart-overlay').classList.remove('hidden'); }
+function closeCart() { document.getElementById('cart-sidebar').classList.remove('open'); document.getElementById('cart-overlay').classList.add('hidden'); }
+
+async function checkout() {
+  if(!cartItems.length) return toast('El carrito está vacío','error');
+  const pedidoId = uid();
+  const { error:pe } = await sb.from('pedidos').insert({ id:pedidoId, id_usuario:currentUser.id, estado:'SOLICITADO' });
+  if(pe) return toast('Error al crear pedido','error');
+  for(const item of cartItems) {
+    await sb.from('pedidos_detalle').insert({ id:uid(), id_pedido:pedidoId, id_producto:item.id_producto, cantidad:item.cantidad, precio:item.productos?.precio||0 });
+    const p = allProducts.find(x=>x.id===item.id_producto);
+    if(p) { await sb.from('productos').update({ stock:Math.max(0,p.stock-item.cantidad) }).eq('id',p.id); p.stock=Math.max(0,p.stock-item.cantidad); }
+  }
+  await sb.from('carrito_detalle').delete().eq('id_carrito',cartId);
+  cartItems = [];
+  updateCartBadge(); renderCartItems(); closeCart();
+  toast('Pedido realizado con éxito');
+  await loadProductos();
+}
+
+// ══════════════════════════════════════════════
+// MIS PEDIDOS
+// ══════════════════════════════════════════════
+async function loadMyPedidos() {
+  const { data } = await sb.from('pedidos').select('*, pedidos_detalle(*, productos(nombre,precio))').eq('id_usuario',currentUser.id).order('fecha',{ascending:false});
+  const list = document.getElementById('pedidos-list');
+  if(!data?.length) { list.innerHTML=`<div class="text-center py-16 text-ink-400"><p class="text-lg mb-2">Sin pedidos aún</p><p class="text-sm">Realiza tu primera compra en el catálogo</p></div>`; return; }
+  list.innerHTML = data.map(p=>{
+    const total=(p.pedidos_detalle||[]).reduce((s,d)=>s+Number(d.precio)*d.cantidad,0);
+    return `<div class="bg-ink-800 border border-ink-600 rounded-2xl p-5 mb-4">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="font-medium text-ink-50 text-sm">Pedido <span class="font-mono text-xs text-ink-400">#${p.id}</span></div>
+          <div class="text-xs text-ink-400 mt-0.5">${fmtDate(p.fecha)}</div>
+        </div>
+        <div class="flex items-center gap-3">${statusBadge(p.estado)}<span class="font-display text-lg font-700 text-volt">${fmtPrice(total)}</span></div>
+      </div>
+      <div class="border-t border-ink-600 pt-3 space-y-1.5">
+        ${(p.pedidos_detalle||[]).map(d=>`<div class="flex justify-between text-sm">
+          <span class="text-ink-300">${d.productos?.nombre||'Producto'} <span class="text-ink-500">x${d.cantidad}</span></span>
+          <span class="text-ink-200">${fmtPrice(Number(d.precio)*d.cantidad)}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// ADMIN
+// ══════════════════════════════════════════════
+function adminTab(tab) {
+  document.querySelectorAll('.admin-tab').forEach((t,i)=>{
+    const tabs=['dashboard','productos','categorias','pedidos','usuarios','proveedores'];
+    const active = tabs[i]===tab;
+    t.className = `admin-tab flex-1 min-w-max py-2 px-4 rounded-lg text-sm font-medium transition-all ${active?'bg-ink-700 text-ink-50 border border-ink-500':'text-ink-300 hover:text-ink-100'}`;
+  });
+  const loaders = { dashboard:loadAdminDashboard, productos:loadAdminProductos, categorias:loadAdminCategorias, pedidos:loadAdminPedidos, usuarios:loadAdminUsuarios, proveedores:loadAdminProveedores };
+  loaders[tab]?.();
+}
+
+async function loadAdminDashboard() {
+  const [prods,pedidos,usuarios,cats] = await Promise.all([
+    sb.from('productos').select('id,stock'),
+    sb.from('pedidos').select('id,estado'),
+    sb.from('usuarios').select('id,rol'),
+    sb.from('categorias').select('id')
+  ]);
+  const { data:recientes } = await sb.from('pedidos').select('*, usuarios(nombre,apellido)').order('fecha',{ascending:false}).limit(6);
+  const totalProds=prods.data?.length||0, totalStock=(prods.data||[]).reduce((s,p)=>s+p.stock,0);
+  const totalPedidos=pedidos.data?.length||0, pedidosPend=(pedidos.data||[]).filter(p=>p.estado==='SOLICITADO'||p.estado==='EMPAQUE').length;
+  const totalClientes=(usuarios.data||[]).filter(u=>u.rol==='CLIENTE').length;
+  const stats = [
+    {label:'Productos',value:totalProds,color:'text-volt'},
+    {label:'Stock Total',value:totalStock,color:'text-green-400'},
+    {label:'Pedidos',value:totalPedidos,color:'text-purple-400'},
+    {label:'Pendientes',value:pedidosPend,color:'text-yellow-400'},
+    {label:'Clientes',value:totalClientes,color:'text-blue-400'},
+    {label:'Categorías',value:cats.data?.length||0,color:'text-pink-400'},
+  ];
+  document.getElementById('admin-content').innerHTML = `
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+      ${stats.map(s=>`<div class="bg-ink-800 border border-ink-600 rounded-xl p-4">
+        <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-2">${s.label}</div>
+        <div class="font-display text-3xl font-800 ${s.color}">${s.value}</div>
+      </div>`).join('')}
+    </div>
+    <div class="bg-ink-800 border border-ink-600 rounded-2xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-ink-600 font-display text-lg font-700">Últimos Pedidos</div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b border-ink-600">
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">ID</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Cliente</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Fecha</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Estado</th>
+          </tr></thead>
+          <tbody>${(recientes||[]).map(p=>`<tr class="border-b border-ink-700/50 hover:bg-ink-700/30 transition-colors">
+            <td class="px-5 py-3 font-mono text-xs text-ink-400">${p.id}</td>
+            <td class="px-5 py-3 text-ink-200">${p.usuarios?.nombre||''} ${p.usuarios?.apellido||''}</td>
+            <td class="px-5 py-3 text-ink-400">${fmtDate(p.fecha)}</td>
+            <td class="px-5 py-3">${statusBadge(p.estado)}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+async function loadAdminProductos() {
+  await loadProductos();
+  document.getElementById('admin-content').innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display text-xl font-700">Gestión de Productos</h3>
+      <button onclick="openFormProducto()" class="bg-volt text-ink-950 font-semibold text-sm px-4 py-2 rounded-lg hover:bg-volt-dark transition-colors">+ Nuevo Producto</button>
+    </div>
+    <div class="bg-ink-800 border border-ink-600 rounded-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b border-ink-600">
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Producto</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Categoría</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Precio</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Stock</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Acciones</th>
+          </tr></thead>
+          <tbody>${allProducts.map(p=>`<tr class="border-b border-ink-700/50 hover:bg-ink-700/30 transition-colors">
+            <td class="px-5 py-3">
+              <div class="font-medium text-ink-50">${p.nombre}</div>
+              <div class="text-xs text-ink-400 mt-0.5">${(p.descripcion||'').substring(0,45)}${(p.descripcion||'').length>45?'...':''}</div>
+            </td>
+            <td class="px-5 py-3 text-ink-300">${p.categorias?.nombre||'—'}</td>
+            <td class="px-5 py-3 font-display font-700 text-volt">${fmtPrice(p.precio)}</td>
+            <td class="px-5 py-3"><span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border ${p.stock===0?'bg-red-500/15 text-red-300 border-red-500/25':p.stock<5?'bg-yellow-500/15 text-yellow-300 border-yellow-500/25':'bg-volt-dim text-volt border-volt-border'}">${p.stock}</span></td>
+            <td class="px-5 py-3"><div class="flex gap-2">
+              <button onclick="openFormProducto('${p.id}')" class="text-xs px-3 py-1.5 border border-ink-500 text-ink-200 rounded-lg hover:border-ink-300 transition-colors">Editar</button>
+              <button onclick="deleteProducto('${p.id}')" class="text-xs px-3 py-1.5 bg-red-500/10 border border-red-500/25 text-red-300 rounded-lg hover:bg-red-500/20 transition-colors">Eliminar</button>
+            </div></td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function openFormProducto(id) {
+  const p = id ? allProducts.find(x=>x.id===id) : null;
+  document.getElementById('form-prod-title').textContent = p ? 'Editar Producto' : 'Nuevo Producto';
+  document.getElementById('fp-id').value = p?.id||'';
+  document.getElementById('fp-nombre').value = p?.nombre||'';
+  document.getElementById('fp-desc').value = p?.descripcion||'';
+  document.getElementById('fp-precio').value = p?.precio||'';
+  document.getElementById('fp-stock').value = p?.stock||'';
+  document.getElementById('fp-categoria').innerHTML = `<option value="">Sin categoría</option>`+allCategorias.map(c=>`<option value="${c.id}"${c.id===p?.id_categoria?' selected':''}>${c.nombre}</option>`).join('');
+  openModal('modal-form-prod');
+}
+
+async function saveProducto() {
+  const id = document.getElementById('fp-id').value;
+  const obj = { nombre:document.getElementById('fp-nombre').value, descripcion:document.getElementById('fp-desc').value, precio:parseFloat(document.getElementById('fp-precio').value)||0, stock:parseInt(document.getElementById('fp-stock').value)||0, id_categoria:document.getElementById('fp-categoria').value||null };
+  if(!obj.nombre) return toast('El nombre es obligatorio','error');
+  let error;
+  if(id) ({error}=await sb.from('productos').update(obj).eq('id',id));
+  else ({error}=await sb.from('productos').insert({...obj,id:uid()}));
+  if(error) return toast(error.message,'error');
+  toast(id?'Producto actualizado':'Producto creado');
+  closeModal('modal-form-prod');
+  await loadProductos();
+  loadAdminProductos();
+}
+
+async function deleteProducto(id) {
+  if(!confirm('¿Eliminar este producto?')) return;
+  const {error}=await sb.from('productos').delete().eq('id',id);
+  if(error) return toast(error.message,'error');
+  toast('Producto eliminado');
+  await loadProductos(); loadAdminProductos();
+}
+
+async function loadAdminCategorias() {
+  await loadCategorias();
+  document.getElementById('admin-content').innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display text-xl font-700">Gestión de Categorías</h3>
+      <button onclick="openFormCategoria()" class="bg-volt text-ink-950 font-semibold text-sm px-4 py-2 rounded-lg hover:bg-volt-dark transition-colors">+ Nueva Categoría</button>
+    </div>
+    <div class="bg-ink-800 border border-ink-600 rounded-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b border-ink-600">
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">ID</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Nombre</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Acciones</th>
+          </tr></thead>
+          <tbody>${allCategorias.map(c=>`<tr class="border-b border-ink-700/50 hover:bg-ink-700/30 transition-colors">
+            <td class="px-5 py-3 font-mono text-xs text-ink-400">${c.id}</td>
+            <td class="px-5 py-3 font-medium text-ink-50">${c.nombre}</td>
+            <td class="px-5 py-3"><div class="flex gap-2">
+              <button onclick="openFormCategoria('${c.id}','${c.nombre}')" class="text-xs px-3 py-1.5 border border-ink-500 text-ink-200 rounded-lg hover:border-ink-300 transition-colors">Editar</button>
+              <button onclick="deleteCategoria('${c.id}')" class="text-xs px-3 py-1.5 bg-red-500/10 border border-red-500/25 text-red-300 rounded-lg hover:bg-red-500/20 transition-colors">Eliminar</button>
+            </div></td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function openFormCategoria(id='',nombre='') {
+  document.getElementById('fc-id').value=id;
+  document.getElementById('fc-nombre').value=nombre;
+  openModal('modal-form-cat');
+}
+
+async function saveCategoria() {
+  const id=document.getElementById('fc-id').value;
+  const nombre=document.getElementById('fc-nombre').value.trim();
+  if(!nombre) return toast('Nombre obligatorio','error');
+  let error;
+  if(id) ({error}=await sb.from('categorias').update({nombre}).eq('id',id));
+  else ({error}=await sb.from('categorias').insert({id:uid(),nombre}));
+  if(error) return toast(error.message,'error');
+  toast(id?'Categoría actualizada':'Categoría creada');
+  closeModal('modal-form-cat');
+  await loadCategorias(); loadAdminCategorias();
+}
+
+async function deleteCategoria(id) {
+  if(!confirm('¿Eliminar esta categoría?')) return;
+  const {error}=await sb.from('categorias').delete().eq('id',id);
+  if(error) return toast(error.message,'error');
+  toast('Categoría eliminada');
+  await loadCategorias(); loadAdminCategorias();
+}
+
+async function loadAdminPedidos() {
+  const { data } = await sb.from('pedidos').select('*, usuarios(nombre,apellido), pedidos_detalle(id,cantidad,precio)').order('fecha',{ascending:false});
+  const estados=['SOLICITADO','EMPAQUE','EN_CAMINO','ENTREGADO','NO_ENTREGADO'];
+  document.getElementById('admin-content').innerHTML = `
+    <h3 class="font-display text-xl font-700 mb-4">Gestión de Pedidos</h3>
+    <div class="bg-ink-800 border border-ink-600 rounded-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b border-ink-600">
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">ID</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Cliente</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Fecha</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Total</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Estado</th>
+          </tr></thead>
+          <tbody>${(data||[]).map(p=>{
+            const total=(p.pedidos_detalle||[]).reduce((s,d)=>s+Number(d.precio)*d.cantidad,0);
+            return `<tr class="border-b border-ink-700/50 hover:bg-ink-700/30 transition-colors">
+              <td class="px-5 py-3 font-mono text-xs text-ink-400">${p.id}</td>
+              <td class="px-5 py-3 text-ink-200">${p.usuarios?.nombre||''} ${p.usuarios?.apellido||''}</td>
+              <td class="px-5 py-3 text-ink-400">${fmtDate(p.fecha)}</td>
+              <td class="px-5 py-3 font-display font-700 text-volt">${fmtPrice(total)}</td>
+              <td class="px-5 py-3"><select onchange="updatePedidoEstado('${p.id}',this.value)" class="bg-ink-700 border border-ink-500 rounded-lg px-2 py-1 text-xs text-ink-200 cursor-pointer">
+                ${estados.map(e=>`<option value="${e}"${e===p.estado?' selected':''}>${e}</option>`).join('')}
+              </select></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+async function updatePedidoEstado(id,estado) {
+  const {error}=await sb.from('pedidos').update({estado}).eq('id',id);
+  if(error) toast(error.message,'error'); else toast('Estado actualizado');
+}
+
+async function loadAdminUsuarios() {
+  const {data}=await sb.from('usuarios').select('*').order('nombre');
+  document.getElementById('admin-content').innerHTML = `
+    <h3 class="font-display text-xl font-700 mb-4">Usuarios Registrados</h3>
+    <div class="bg-ink-800 border border-ink-600 rounded-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b border-ink-600">
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Nombre</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Email</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">DNI</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Teléfono</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Rol</th>
+          </tr></thead>
+          <tbody>${(data||[]).map(u=>`<tr class="border-b border-ink-700/50 hover:bg-ink-700/30 transition-colors">
+            <td class="px-5 py-3 font-medium text-ink-50">${u.nombre||''} ${u.apellido||''}</td>
+            <td class="px-5 py-3 text-ink-300 text-xs">${u.email}</td>
+            <td class="px-5 py-3 font-mono text-xs text-ink-400">${u.dni||'—'}</td>
+            <td class="px-5 py-3 text-ink-400">${u.telefono||'—'}</td>
+            <td class="px-5 py-3">${statusBadge(u.rol)}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+async function loadAdminProveedores() {
+  const {data}=await sb.from('proveedores').select('*').order('nombre');
+  document.getElementById('admin-content').innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display text-xl font-700">Gestión de Proveedores</h3>
+      <button onclick="openFormProveedor()" class="bg-volt text-ink-950 font-semibold text-sm px-4 py-2 rounded-lg hover:bg-volt-dark transition-colors">+ Nuevo Proveedor</button>
+    </div>
+    <div class="bg-ink-800 border border-ink-600 rounded-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b border-ink-600">
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Nombre</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Contacto</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Teléfono</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Email</th>
+            <th class="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Acciones</th>
+          </tr></thead>
+          <tbody>${(data||[]).map(p=>`<tr class="border-b border-ink-700/50 hover:bg-ink-700/30 transition-colors">
+            <td class="px-5 py-3 font-medium text-ink-50">${p.nombre}</td>
+            <td class="px-5 py-3 text-ink-300">${p.contacto||'—'}</td>
+            <td class="px-5 py-3 text-ink-400">${p.telefono||'—'}</td>
+            <td class="px-5 py-3 text-ink-300 text-xs">${p.email||'—'}</td>
+            <td class="px-5 py-3"><div class="flex gap-2">
+              <button onclick="openFormProveedor('${p.id}')" class="text-xs px-3 py-1.5 border border-ink-500 text-ink-200 rounded-lg hover:border-ink-300 transition-colors">Editar</button>
+              <button onclick="deleteProveedor('${p.id}')" class="text-xs px-3 py-1.5 bg-red-500/10 border border-red-500/25 text-red-300 rounded-lg hover:bg-red-500/20 transition-colors">Eliminar</button>
+            </div></td>
+          </tr>`).join('')}
+          ${!data?.length?`<tr><td colspan="5" class="px-5 py-10 text-center text-ink-400">No hay proveedores registrados</td></tr>`:''}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+async function openFormProveedor(id) {
+  let pr = null;
+  if(id) { const {data}=await sb.from('proveedores').select('*').eq('id',id).single(); pr=data; }
+  document.getElementById('fpr-id').value=pr?.id||'';
+  document.getElementById('fpr-nombre').value=pr?.nombre||'';
+  document.getElementById('fpr-contacto').value=pr?.contacto||'';
+  document.getElementById('fpr-telefono').value=pr?.telefono||'';
+  document.getElementById('fpr-email').value=pr?.email||'';
+  openModal('modal-form-prov');
+}
+
+async function saveProveedor() {
+  const id=document.getElementById('fpr-id').value;
+  const obj={nombre:document.getElementById('fpr-nombre').value,contacto:document.getElementById('fpr-contacto').value,telefono:document.getElementById('fpr-telefono').value,email:document.getElementById('fpr-email').value};
+  if(!obj.nombre) return toast('Nombre obligatorio','error');
+  let error;
+  if(id) ({error}=await sb.from('proveedores').update(obj).eq('id',id));
+  else ({error}=await sb.from('proveedores').insert({...obj,id:uid()}));
+  if(error) return toast(error.message,'error');
+  toast('Proveedor guardado');
+  closeModal('modal-form-prov');
+  loadAdminProveedores();
+}
+
+async function deleteProveedor(id) {
+  if(!confirm('¿Eliminar este proveedor?')) return;
+  const {error}=await sb.from('proveedores').delete().eq('id',id);
+  if(error) return toast(error.message,'error');
+  toast('Proveedor eliminado');
+  loadAdminProveedores();
+}
+</script>
+</body>
 </html>
