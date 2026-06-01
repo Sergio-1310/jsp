@@ -40,6 +40,11 @@ public class Validar extends HttpServlet {
                 response.sendRedirect("login.jsp");
 
             }
+        } else if (accion != null && accion.equalsIgnoreCase("Salir")) {
+            // Destruye la sesión actual del usuario
+            request.getSession().invalidate();
+            // Redirige al catálogo para verlo como invitado
+            response.sendRedirect("productos.jsp");
         }
     }
 

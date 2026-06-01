@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TechStore S.A.C.</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Mulish:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script>
@@ -302,14 +301,6 @@
 
 <script>
 // ══════════════════════════════════════════════
-// SUPABASE CONFIG
-// ══════════════════════════════════════════════
-const SUPABASE_URL = 'https://ibiwfngyimomdhknzgny.supabase.co/rest/v1/';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliaXdmbmd5aW1vbWRoa256Z255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNDI5MjAsImV4cCI6MjA5NTgxODkyMH0.3PYMTLRRVQqasnW7FajkpGPhKDllbr9ZN8sd9GGKKaI';
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
 let currentUser = null;
@@ -364,32 +355,6 @@ function switchAuthTab(tab) {
   document.getElementById('tab-register').classList.toggle('hidden', tab!=='register');
   document.getElementById('auth-tab-login').className = `flex-1 py-2 rounded-lg text-sm font-medium transition-all ${tab==='login'?'bg-ink-800 text-ink-50 border border-ink-500':'text-ink-300'}`;
   document.getElementById('auth-tab-register').className = `flex-1 py-2 rounded-lg text-sm font-medium transition-all ${tab==='register'?'bg-ink-800 text-ink-50 border border-ink-500':'text-ink-300'}`;
-}
-
-async function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-pass').value;
-  if(!email||!pass) return toast('Completa los campos','error');
-  const { data, error } = await sb.from('usuarios').select('*').eq('email',email).single();
-  if(error||!data) return toast('Usuario no encontrado','error');
-  if(data.contrasena !== pass) return toast('Contraseña incorrecta','error');
-  currentUser = data;
-  initApp();
-}
-
-async function doRegister() {
-  const nombre   = document.getElementById('reg-nombre').value.trim();
-  const apellido = document.getElementById('reg-apellido').value.trim();
-  const dni      = document.getElementById('reg-dni').value.trim();
-  const telefono = document.getElementById('reg-telefono').value.trim();
-  const email    = document.getElementById('reg-email').value.trim();
-  const pass     = document.getElementById('reg-pass').value;
-  if(!nombre||!apellido||!email||!pass||!dni) return toast('Completa todos los campos','error');
-  if(pass.length<6) return toast('Contraseña mínimo 6 caracteres','error');
-  const { error } = await sb.from('usuarios').insert({ id:uid(), email, contrasena:pass, rol:'CLIENTE', nombre, apellido, dni, telefono });
-  if(error) return toast(error.message||'Error al registrar','error');
-  toast('Cuenta creada. Ya puedes iniciar sesión.');
-  switchAuthTab('login');
 }
 
 function doLogout() {
